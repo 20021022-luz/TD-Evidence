@@ -1,0 +1,190 @@
+---
+title: "Homework 5;Practical Issues in the Specification and Estimation of Discrete Choice Models"
+author: "Elvira Soto R"
+date: "2025-05-26"
+output: html_document
+format: html
+editor: visual
+---
+
+```{r}
+#| code-fold: true
+#| message: false
+#| warning: false  
+```
+
+```{r, include= FALSE, echo=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(knitr)
+library(tidyverse)
+library(discrtr) # A companion package for the book Introduction to Discrete Choice Analysis with `R`
+library(dplyr) # A Grammar of Data Manipulation
+library(ggplot2) # Create Elegant Data Visualisations Using the Grammar of Graphics
+library(mlogit) # Multinomial Logit Models
+library(readr) # Read Rectangular Text Data
+library(gplots) # Various R Programming Tools for Plotting Data
+library(ggmosaic) # Mosaic Plots in the 'ggplot2' Framework
+library(treemapify)
+library(ggridges)
+library(ggalluvial)
+library(evd)
+library(htmlwidgets) # HTML Widgets for R
+library(kableExtra) # Construct Complex Table with kable and Pipe Syntax
+library(plotly) # Create interactive web graphics
+library(tidyr) # Tidy messy data
+#library(webshot2) # Take screenshots of web pages
+
+library(evd)
+```
+
+```{r}
+data("mc_commute_wide", package = "discrtr")
+mc_commute_wide[1:6, 1:10]
+```
+
+```{r}
+mc_commute_long <- mc_commute_wide |> 
+mlogit.data(shape="wide",
+            choice = "choice",
+            varying = 3:22)
+
+f2 <-mFormula(choice ~ time | sidewalk_density)
+
+model2 <- mlogit(f2, mc_commute_long)
+summary(model2)
+```
+
+*1. In the original chapter example, we evaluated mode-choice probabilities by holding travel time constant at the in-sample median while varying sidewalk density. Now, using Model2, repeat this analysis with the following adjustments:*
+
+Keep sidewalk density fixed at the in-sample median value.
+
+Calculate probabilities for three travel-time scenarios: 20, 30, and 40 minutes.
+
+*2. Analyze and interpret how these travel-time changes influence the likelihood of selecting different transportation modes. Highlight trends, unexpected outcomes, or practical implications of these results.*
+
+```{r}
+#Probabilidades con observaciones para explorar las densidades de aceras en el rango entre 0 y 60, en intervalos de longitud 5. 
+
+mc_commute_predict <- mc_commute_long[1:52, ]
+mc_commute_predict$sidewalk_density <- rep(seq(from=0, to=60, by=5), each=4)
+
+times <- c(20, 30, 40) 
+results <- list() 
+
+for (t in times) {
+mc_commute_predict$time <- t
+probs <- predict(model2, newdata = mc_commute_predict)
+results[[as.character(t)]] <- probs 
+}
+
+for (t in times) {
+cat("\nProbabilities for travel time =", t, "minutes:\n")
+print(results[[as.character(t)]])
+}
+```
+
+```{r}
+#Probabilidades sin observaciones para explorar las densidades de aceras en el rango entre 0 y 60, en intervalos de longitud 5. 
+
+mc_commute_predict <- mc_commute_long[1:52, ]
+#mc_commute_predict$sidewalk_density <- rep(seq(from=0, to=60, by=5), each=4)
+f2 <-mFormula(choice ~ time | sidewalk_density)
+
+times <- c(20, 30, 40) 
+results <- list() 
+
+for (t in times) {
+mc_commute_predict$time <- t
+probs <- predict(model2, newdata = mc_commute_predict)
+results[[as.character(t)]] <- probs 
+}
+
+for (t in times) {
+cat("\nProbabilities for travel time =", t, "minutes:\n")
+print(results[[as.character(t)]])
+}
+```
+
+Se advierte que los tiempos estimados de viaje para las distintas alternativas de transporte presentan valores muy parecidos. Por consiguiente, si el tiempo de viaje se incrementara, las preferencias por cada modo tenderían a reducirse, comportamiento que se observa, por ejemplo, en el caso de caminar.
+
+Por otro lado, los modos de transporte predominantes son caminar y bicicleta, lo cual se explica por la alta densidad de aceras disponibles.
+
+*3. Estimate a model using formula f3 (call it model3). Discuss the output of this model.*
+
+```{r}
+f3 <- mFormula(choice ~ 0 | sidewalk_density | time)
+model3 <- mlogit(f3, data = mc_commute_long)
+summary(model3)
+```
+
+Caminar continúa siendo la forma de transporte preferida, principalmente por el impacto positivo que tiene la densidad de las aceras. En segundo lugar se encuentra el uso del transporte público (HSR). Además, tanto el tiempo como las condiciones de las aceras influyen en todas las elecciones relacionadas con el transporte.
+
+*4. Use model3 to calculate the probability of choosing different modes by sample median sidewalk density but now for travel times of 20, 30, and 40 min. Discuss the results.*
+
+```{r}
+# Probabilidades con observaciones para explorar las densidades de aceras en el rango entre 0 y 60, en intervalos de longitud 5. 
+
+mc_commute_predict <- mc_commute_long[1:52, ]
+mc_commute_predict$sidewalk_density <- rep(seq(from=0, to=60, by=5), each=4)
+
+
+f3 <-mFormula(choice ~ time | sidewalk_density)
+
+times <- c(20, 30, 40) 
+results <- list() 
+
+for (t in times) {
+mc_commute_predict$time <- t
+probs <- predict(model3, newdata = mc_commute_predict)
+results[[as.character(t)]] <- probs 
+}
+
+for (t in times) {
+cat("\nProbabilities for travel time =", t, "minutes:\n")
+print(results[[as.character(t)]])
+}
+```
+
+```{r}
+# Probabilidades sin observaciones para explorar las densidades de aceras en el rango entre 0 y 60, en intervalos de longitud 5. 
+
+mc_commute_predict <- mc_commute_long[1:52, ]
+#mc_commute_predict$sidewalk_density <- rep(seq(from=0, to=60, by=5), each=4)
+f3 <-mFormula(choice ~ time | sidewalk_density)
+
+times <- c(20, 30, 40) 
+results <- list() 
+
+for (t in times) {
+mc_commute_predict$time <- t
+probs <- predict(model3, newdata = mc_commute_predict)
+results[[as.character(t)]] <- probs 
+}
+
+for (t in times) {
+cat("\nProbabilities for travel time =", t, "minutes:\n")
+print(results[[as.character(t)]])
+}
+```
+
+Para trayectos de corta duración, las opciones más elegidas son caminar y usar la bicicleta, siendo esta última la más destacada en recorridos de duración media. No obstante, en desplazamientos largos, disminuye la preferencia por caminar, el transporte HSR y el automóvil, lo que permite que la bicicleta continúe siendo la alternativa más utilizada incluso en esos casos.
+
+*5. In the general case, what is the value of the log-likelihood of the null (Equally Likely) model?*
+
+```{r}
+f0 <- mFormula(choice ~ 1)
+model0 <- mlogit(f0, mc_commute_long)
+summary(model0)
+```
+
+El valor de la Log-Verosimilitud del modelo nulo (*market shares*) es -1547.2.
+
+6.  *Use the likelihood ratio test to compare model3 to model2? Discuss the results. What restrictions would you need to impose in model3 to obtain model2?*
+
+```{r}
+lrtest(model2, model3)
+```
+
+El valor(\< 2.2e-16) del Modelo 3 indica que este tiene un ajuste significativamente mejor a los datos en comparación con el Modelo 2, como también lo sugieren los valores de log-likelihood de ambos modelos. Esto indica que incluir tanto la densidad de aceras como el tiempo de viaje en el Modelo 3 es necesario para entender las elecciones de transporte.
+
+Si se desea obtener un Modelo 2, podría igualarse los coeficientes de tiempo de viaje en el Modelo 3 para todas las alternativas.
